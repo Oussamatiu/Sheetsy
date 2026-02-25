@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ColocationRequest;
 use App\Models\Colocation;
+use App\Models\Memberships;
 use Illuminate\Http\Request;
 
 class ColocationController extends Controller
@@ -20,15 +22,29 @@ class ColocationController extends Controller
      */
     public function create()
     {
-        //
+        
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ColocationRequest $request)
     {
-        //
+        $id = auth()->id();
+        $find = Memberships::where('user_id', $id)->first();
+
+        if($find) {
+            return view('colocations.create')->with(['Error' => 'You already have a colocation.']);
+        }
+        $request->merge(['owner_id' => $id]);
+        $validated = $request->validated();
+
+        Colocation::create($validated)->attach($validated['owner_id'], [
+            'role' => 'owner',
+            'joined_at' => now(),
+        ]);
+        
+        return view('colocations.create')->with(['Success' => 'Colocation created successfully.']);
     }
 
     /**

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class memberships extends Model
+class Memberships extends Model
 {
     use HasFactory;
     protected $fillable = ['user_id','colocation_id','role','joined_at','left_at'];
