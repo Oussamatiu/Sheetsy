@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Memberships extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id','colocation_id','role','joined_at','left_at'];
+    protected $fillable = ['user_id','colocation_id','joined_at','left_at'];
      public function user()
     {
         return $this->belongsTo(User::class);

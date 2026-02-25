@@ -14,7 +14,13 @@ class ColocationController extends Controller
      */
     public function index()
     {
-        //
+       $userId = auth()->id();
+
+       $colocations = auth()->user()->colocations;
+
+       return view('colocations.index', compact('colocations'));
+
+        
     }
 
     /**
@@ -77,5 +83,21 @@ class ColocationController extends Controller
     public function destroy(Colocation $colocation)
     {
         //
+    }
+    public function leave(Colocation $colocation)
+    {
+        $user = auth()->user();
+
+        $membership = $colocation->users()->where('user_id', $user->id)->first();
+        if($membership) {
+            return redirect()->route('colocations.index')->with('error', 'Owners cannot leave their colocation. Please transfer ownership or delete the colocation.');
+        }
+        if (!$membership) {
+            abort(403);
+        }
+
+        $colocation->users()->detach($user->id);
+
+        return redirect()->route('colocations.index')->with('success', 'You have left the colocation.');
     }
 }
