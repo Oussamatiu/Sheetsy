@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Colocation;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,11 +16,21 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+         $users = User::factory(10)->create();
+         $colocation = Colocation::factory()->create();
+         $owner = $users->random();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+         $colocation->users()->attach($owner->id, [
+        'role' => 'owner',
+        'joined_at' => now(),
         ]);
+
+        $members = $users->where('id' , '!=' ,$owner->id)->random(3); 
+       
+         $colocation->users()->attach($members->pluck('id'), [
+            'role' => 'member',
+            'joined_at' => now(),
+         ]);
+        
     }
 }
