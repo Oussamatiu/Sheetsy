@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ColocationRequest extends FormRequest
+class ExpenseRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -14,12 +14,6 @@ class ColocationRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation()
-    {
-        $this->merge([
-            'owner_id' => auth()->id(),
-        ]);
-    }
     /**
      * Get the validation rules that apply to the request.
      *
@@ -28,9 +22,13 @@ class ColocationRequest extends FormRequest
     public function rules(): array
     {
         return [
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'token' => 'nullable|string|unique:colocations,token',
+            'title' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0',
+            'expense_date' => 'required|date',
+            'colocation_id' => 'required|exists:colocations,id',
+            'created_by' => 'required|exists:users,id',
+            'paid_by' => 'required|exists:users,id',
+            'category_id' => 'nullable|exists:categories,id',
         ];
     }
 }
