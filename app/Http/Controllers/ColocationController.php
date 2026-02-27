@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ColocationRequest;
 use App\Models\Colocation;
 use App\Models\Memberships;
+use Illuminate\Container\Attributes\Auth;
 use Illuminate\Http\Request;
 
 class ColocationController extends Controller
@@ -28,7 +29,7 @@ class ColocationController extends Controller
      */
     public function create()
     {
-        
+        return view('colocations.create');
     }
 
     /**
@@ -36,21 +37,27 @@ class ColocationController extends Controller
      */
     public function store(ColocationRequest $request)
     {
-        $id = auth()->id();
-        $find = Memberships::where('user_id', $id)->first();
+       
+        $hasColocation = auth()->user()
+        ->memberships()
+        ->whereNull('left_at')
+        ->exists();
 
-        if($find) {
-            return view('colocations.create')->with(['Error' => 'You already have a colocation.']);
+        if ($hasColocation) {
+            return redirect()->route('dashboard')
+                ->with('error', 'You already have an active colocation.');
         }
-        $request->merge(['owner_id' => $id]);
-        $validated = $request->validated();
 
-        Colocation::create($validated)->attach($validated['owner_id'], [
-            'role' => 'owner',
+        
+        $validated = $request->validated();
+        $validated['owner_id'] = auth()->id();
+        $colocation = Colocation::create($validated);
+
+        $colocation->users()->attach($validated['owner_id'], [
             'joined_at' => now(),
         ]);
         
-        return view('colocations.create')->with(['Success' => 'Colocation created successfully.']);
+        return view('dashboard')->with(['Success' => 'Colocation created successfully.']);
     }
 
     /**
@@ -58,7 +65,43 @@ class ColocationController extends Controller
      */
     public function show(Colocation $colocation)
     {
-        //
+    $isOwner = $colocation->owner_id === auth()->id();
+    $activeMembers = $colocation->memberships()->with('user')->whereNull('left_at')->get();
+
+    $expensesQuery = $colocation->expenses()->with(['paidBy', 'category']);
+    if (request('month')) {
+        $expensesQuery->whereMonth('expense_date', request('month'));
+    }
+    $expenses = $expensesQuery->orderByDesc('expense_date')->get();
+
+    $totalExpenses = $colocation->expenses()->sum('amount');
+    $myPaid = $colocation->expenses()->where('paid_by', auth()->id())->sum('amount');
+    $perPerson = $activeMembers->count() > 0 ? $totalExpenses / $activeMembers->count() : 0;
+    $myBalance = $myPaid - $perPerson;
+
+    $pendingInvitations = $colocation->invitations()
+        ->where('status', 'pending')
+        ->orderByDesc('created_at')
+        ->get();
+
+    $sidebarColocations = auth()->user()->memberships()
+        ->with('colocation')
+        ->whereNull('left_at')
+        ->get()
+        ->pluck('colocation')
+        ->filter();
+
+    return view('colocations.show', compact(
+        'colocation',
+        'isOwner',
+        'activeMembers',
+        'expenses',
+        'totalExpenses',
+        'myPaid',
+        'myBalance',
+        'pendingInvitations',
+        'sidebarColocations',
+    ));
     }
 
     /**
@@ -82,14 +125,20 @@ class ColocationController extends Controller
      */
     public function destroy(Colocation $colocation)
     {
-        //
+        if ($colocation->owner_id !== Auth()->id()) {
+            return redirect()->route('dashboard')->with('error', 'Only the owner can delete this colocation.');
+        }
+
+        $colocation->delete();
+
+        return redirect()->route('dashboard')->with('success', 'Colocation deleted successfully.');
     }
     public function leave(Colocation $colocation)
     {
         $user = auth()->user();
 
         $membership = $colocation->users()->where('user_id', $user->id)->first();
-        if($membership) {
+        if($user->id === $colocation->owner_id) {
             return redirect()->route('colocations.index')->with('error', 'Owners cannot leave their colocation. Please transfer ownership or delete the colocation.');
         }
         if (!$membership) {
