@@ -59,7 +59,7 @@ class ExpenseController extends Controller
 
   
     $recentExpenses = $colocation->expenses()
-        ->with('paidBy')
+        ->with('payer')
         ->latest()
         ->take(5)
         ->get();
@@ -85,10 +85,14 @@ class ExpenseController extends Controller
     public function store(ExpenseRequest $request)
     {
         $validated = $request->validated();
+        $validated['created_by'] = auth()->id();
+        $validated['colocation_id'] = auth()->user()->colocations()
+            ->wherePivotNull('left_at')
+            ->value('colocations.id');
 
         Expense::create($validated);
 
-        return redirect()->route('expenses.index')->with('success', 'Expense created successfully.'); 
+        return redirect()->route('colocations.show', $validated['colocation_id'])->with('success', 'Expense created successfully.'); 
     }
 
     /**
@@ -139,10 +143,12 @@ class ExpenseController extends Controller
     public function destroy(Expense $expense)
     {
         $userId = auth()->id();
+
         if ($expense->paid_by !== $userId && $expense->created_by !== $userId) {
-            return redirect()->route('expenses.index')->with('error', 'You can only delete expenses you have paid.');
+            return redirect()->route('colocations.show', $expense->colocation_id)->with('error', 'You can only delete expenses you have paid.');
         }
+
         $expense->delete();
-        return redirect()->route('expenses.index')->with('success', 'Expense deleted successfully.');
+        return redirect()->route('colocations.show', $expense->colocation_id)->with('success', 'Expense deleted successfully.');
     }
 }

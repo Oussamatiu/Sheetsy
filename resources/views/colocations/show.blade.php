@@ -231,7 +231,6 @@
                             </svg>
                             Add Expense
                         </a>
-
                         <a href=""
                            class="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold px-4 py-2.5 rounded-xl transition">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -315,6 +314,7 @@
                 <button class="tab-btn" onclick="switchTab('expenses', this)">💸 Expenses</button>
                 @if($isOwner)
                     <button class="tab-btn" onclick="switchTab('invitations', this)">✉️ Invitations</button>
+                    <button class="tab-btn" onclick="switchTab('categories', this)">🏷️ Categories</button>
                 @endif
             </div>
 
@@ -465,9 +465,9 @@
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-2">
                                                 <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
-                                                    {{ strtoupper(substr($expense->paidBy->name, 0, 1)) }}
+                                                    {{ strtoupper(substr($expense->payer->name, 0, 1)) }}
                                                 </div>
-                                                <span class="text-gray-600 text-xs">{{ $expense->paidBy->name }}</span>
+                                                <span class="text-gray-600 text-xs">{{ $expense->payer->name }}</span>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-xs text-gray-400">
@@ -572,6 +572,86 @@
                     </div>
                 </div>
             @endif
+            @if($isOwner)
+    <div id="tab-categories" class="tab-panel">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Add Category Form -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h2 class="font-semibold text-gray-900 mb-1">Add a Category</h2>
+                <p class="text-xs text-gray-400 mb-5">Create a new category to organize your expenses.</p>
+
+                @if($errors->has('name'))
+                    <div class="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+                        {{ $errors->first('name') }}
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('categories.store') }}">
+                    @csrf
+                    <input type="hidden" name="colocation_id" value="{{ $colocation->id }}">
+                    <label class="block text-xs font-semibold text-gray-500 mb-2">Category Name</label>
+                    <div class="flex gap-2">
+                        <div class="relative flex-1">
+                            <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                </svg>
+                            </span>
+                            <input type="text" name="name"
+                                   placeholder="e.g. Groceries, Electricity, Netflix…"
+                                   value="{{ old('name') }}"
+                                   class="form-input pl-10" required />
+                        </div>
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Categories List -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h2 class="font-semibold text-gray-900 mb-1">Existing Categories</h2>
+                <p class="text-xs text-gray-400 mb-5">Categories available for this colocation.</p>
+
+                @forelse($categories as $category)
+                    <div class="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">{{ $category->name }}</span>
+                        </div>
+                        <form method="POST" action="{{ route('categories.destroy', $category) }}"
+                              onsubmit="return confirm('Delete this category?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-gray-300 hover:text-red-500 transition">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                @empty
+                    <div class="text-center py-8">
+                        <div class="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-xl mx-auto mb-3">🏷️</div>
+                        <p class="text-gray-400 text-sm">No categories yet</p>
+                        <p class="text-gray-300 text-xs mt-1">Add your first category on the left</p>
+                    </div>
+                @endforelse
+            </div>
+
+        </div>
+    </div>
+@endif
 
         </div>
     </main>

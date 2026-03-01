@@ -275,7 +275,7 @@
                         <!-- Category -->
                         <div class="mb-5">
                             <label for="category_id" class="form-label">
-                                Category <span class="text-gray-400 font-normal">(optional)</span>
+                                Category
                             </label>
                             <div class="input-icon-wrap">
                                 <span class="icon">
@@ -435,7 +435,7 @@
                                 <div class="flex items-center justify-between">
                                     <div class="min-w-0">
                                         <p class="text-sm font-medium text-gray-700 truncate">{{ $recent->title }}</p>
-                                        <p class="text-xs text-gray-400">{{ \Carbon\Carbon::parse($recent->date)->format('d M') }} · {{ $recent->paidBy->name }}</p>
+                                        <p class="text-xs text-gray-400">{{ \Carbon\Carbon::parse($recent->date)->format('d M') }} · {{ $recent->payer->name }}</p>
                                     </div>
                                     <span class="text-sm font-bold text-green-700 ml-3 flex-shrink-0">
                                         {{ number_format($recent->amount, 2) }} MAD

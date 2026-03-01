@@ -67,12 +67,16 @@ class ColocationController extends Controller
     {
     $isOwner = $colocation->owner_id === auth()->id();
     $activeMembers = $colocation->memberships()->with('user')->whereNull('left_at')->get();
+    $expensesQuery = $colocation->expenses()
+    ->with(['payer', 'category']);
 
-    $expensesQuery = $colocation->expenses()->with(['paidBy', 'category']);
     if (request('month')) {
         $expensesQuery->whereMonth('expense_date', request('month'));
     }
-    $expenses = $expensesQuery->orderByDesc('expense_date')->get();
+
+    $expenses = $expensesQuery
+        ->orderByDesc('expense_date')
+        ->get();
 
     $totalExpenses = $colocation->expenses()->sum('amount');
     $myPaid = $colocation->expenses()->where('paid_by', auth()->id())->sum('amount');
@@ -90,6 +94,8 @@ class ColocationController extends Controller
         ->get()
         ->pluck('colocation')
         ->filter();
+        
+    $categories = $colocation->categories()->orderBy('name')->get();
 
     return view('colocations.show', compact(
         'colocation',
@@ -101,6 +107,7 @@ class ColocationController extends Controller
         'myBalance',
         'pendingInvitations',
         'sidebarColocations',
+        'categories'
     ));
     }
 
