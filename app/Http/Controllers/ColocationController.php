@@ -58,7 +58,7 @@ class ColocationController extends Controller
             'joined_at' => now(),
         ]);
         
-        return view('dashboard')->with(['Success' => 'Colocation created successfully.']);
+        return redirect()->route('colocations.show', $colocation)->with('success', 'Colocation created successfully.');
     }
 
     /**
@@ -147,6 +147,8 @@ class ColocationController extends Controller
         $colocation->status = 'cancelled';
         $colocation->update();
 
+        $colocation->memberships()->update(['left_at' => now()]);
+
         return redirect()->route('dashboard')->with('success', 'Colocation deleted successfully.');
     }
 
@@ -161,7 +163,10 @@ class ColocationController extends Controller
         if (!$membership) {
             abort(403);
         }
-
+        if($membership->pivot->balance > 0) {
+            $user->reputation -= 1;
+            $user->update();
+        }
         $colocation->users()->detach($user->id);
 
         return redirect()->route('colocations.index')->with('success', 'You have left the colocation.');

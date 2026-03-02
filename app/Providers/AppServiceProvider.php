@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\AdminMiddleware;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Route;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -11,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        
     }
 
     /**
@@ -19,6 +22,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+       
     }
 }

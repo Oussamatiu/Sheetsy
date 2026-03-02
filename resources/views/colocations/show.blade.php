@@ -771,12 +771,12 @@
                                     <tr class="payment-row" data-status="{{ $payment->status }}">
                                         <td>
                                             <div class="user-cell">
-                                                <div class="user-avatar {{ $payment->fromUser->id === auth()->id() ? 'red' : 'other' }}">
-                                                    {{ strtoupper(substr($payment->fromUser->name, 0, 1)) }}
+                                                <div class="user-avatar {{ $payment->payer->id === auth()->id() ? 'red' : 'other' }}">
+                                                    {{ strtoupper(substr($payment->payer->name, 0, 1)) }}
                                                 </div>
                                                 <div>
-                                                    <p class="user-name">{{ $payment->fromUser->name }}</p>
-                                                    @if($payment->fromUser->id === auth()->id())<p style="font-size:0.7rem;color:#ef4444">(you)</p>@endif
+                                                    <p class="user-name">{{ $payment->payer->name }}</p>
+                                                    @if($payment->payer->id === auth()->id())<p style="font-size:0.7rem;color:#ef4444">(you)</p>@endif
                                                 </div>
                                             </div>
                                         </td>
@@ -785,12 +785,12 @@
                                                 <div class="arrow-icon">
                                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                                                 </div>
-                                                <div class="user-avatar {{ $payment->toUser->id === auth()->id() ? 'self' : 'other' }}">
-                                                    {{ strtoupper(substr($payment->toUser->name, 0, 1)) }}
+                                                <div class="user-avatar {{ $payment->receiver->id === auth()->id() ? 'self' : 'other' }}">
+                                                    {{ strtoupper(substr($payment->receiver->name, 0, 1)) }}
                                                 </div>
                                                 <div>
-                                                    <p class="user-name">{{ $payment->toUser->name }}</p>
-                                                    @if($payment->toUser->id === auth()->id())<p style="font-size:0.7rem;color:var(--green)">(you)</p>@endif
+                                                    <p class="user-name">{{ $payment->receiver->name }}</p>
+                                                    @if($payment->receiver->id === auth()->id())<p style="font-size:0.7rem;color:var(--green)">(you)</p>@endif
                                                 </div>
                                             </div>
                                         </td>
@@ -805,7 +805,7 @@
                                             @endif
                                         </td>
                                         <td>
-                                            @if($payment->status === 'pending' && $payment->to_user_id === auth()->id())
+                                            @if($payment->status === 'pending' && $payment->receiver->id === auth()->id())
                                                 <form method="POST" action="{{ route('payments.mark-paid', [$colocation, $payment]) }}"
                                                       onsubmit="return confirm('Confirm you received this payment?')">
                                                     @csrf @method('PATCH')
@@ -814,7 +814,7 @@
                                                         Mark as Paid
                                                     </button>
                                                 </form>
-                                            @elseif($payment->status === 'pending' && $payment->from_user_id === auth()->id())
+                                            @elseif($payment->status === 'pending' && $payment->payer->id === auth()->id())
                                                 <span class="owe-badge you-owe" style="font-size:0.72rem">
                                                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                                     You owe this

@@ -227,7 +227,9 @@
     <div class="login-wrapper">
 
         <!-- FORM -->
+         
         <div class="form-panel">
+          
             <a href="{{ url('/') }}" class="form-logo">
                 <div class="form-logo-icon">
                     <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
@@ -246,6 +248,11 @@
                 @if (session('status'))
                     <div class="session-status">{{ session('status') }}</div>
                 @endif
+                  @if (session('error'))
+            <div class="session-status" style="background: #ffe5e5; border-color: #f5c2c2; color: #dc2626;">
+                {{ session('error') }}
+            </div>
+        @endif
 
                 <div class="form-group">
                     <label for="email" class="form-label">Email address</label>

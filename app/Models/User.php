@@ -21,11 +21,14 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'is_admin',
         'reputation',
-        'is_Ban'
+        'is_Ban',
+        'role_id',
     ];
-
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
     public function memberships(){
         return $this->hasMany(memberships::class);
     }

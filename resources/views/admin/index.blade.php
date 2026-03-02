@@ -275,6 +275,11 @@
     .d3 { animation-delay: 0.12s; } .d4 { animation-delay: 0.16s; }
 
     .d5 { animation-delay: 0.22s; }
+    
+    /* Added Admin specific CSS for the User Management table */
+    .sh-avatar.banned { background: #ef4444; }
+    .btn-ban { border-color: #fecaca; color: #dc2626; background: #fef2f2; }
+    .btn-unban { border-color: #bbf7d0; color: var(--green-mid); background: #f0fdf4; }
 </style>
 
 <div class="sh-layout">
@@ -315,17 +320,18 @@
                 </a>
             @endforelse
         </div>
+
         @if(auth()->user()->role->title === 'admin')
-    <div class="sh-nav-section">
-        <p class="sh-nav-label">Administration</p>
-        <a href="{{ route('admin.index') }}" class="sh-nav-link">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            Manage Users
-        </a>
-    </div>
-@endif
+            <div class="sh-nav-section">
+                <p class="sh-nav-label">Administration</p>
+                <a href="#admin-section" class="sh-nav-link">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    Manage Users
+                </a>
+            </div>
+        @endif
 
         <div class="sh-nav-section">
             <p class="sh-nav-label">Account</p>
@@ -360,9 +366,15 @@
         <div class="sh-page-header fade-up">
             <div>
                 <h1 class="sh-page-greeting">Welcome back, {{ explode(' ', $user->name)[0] }} 👋</h1>
-                <p class="sh-page-sub">Here's an overview of your colocation activity.</p>
+                <p class="sh-page-sub">
+                    @if(auth()->user()->role->title === 'admin')
+                        System Administrator Dashboard
+                    @else
+                        Here's an overview of your colocation activity.
+                    @endif
+                </p>
             </div>
-            @if(!$activeColoc)
+            @if(!$activeColoc && auth()->user()->role->title !== 'admin')
                 <a href="{{ route('colocations.create') }}" class="btn-primary">
                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
                     New Colocation
@@ -372,42 +384,40 @@
 
         {{-- Stats Grid --}}
         <div class="sh-stats">
-            <div class="sh-stat fade-up d1">
+            {{-- User Stats (Admin Only) --}}
+            @if(auth()->user()->role->title === 'admin')
+                <div class="sh-stat fade-up d1">
+                    <div class="sh-stat-top">
+                        <span class="sh-stat-label">Total Users</span>
+                        <div class="sh-stat-icon blue">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        </div>
+                    </div>
+                    <p class="sh-stat-value">{{ $users->count() }}</p>
+                    <p class="sh-stat-hint">Registered accounts</p>
+                </div>
+            @endif
+
+            <div class="sh-stat fade-up d2">
                 <div class="sh-stat-top">
                     <span class="sh-stat-label">Total Colocations</span>
-                    <div class="sh-stat-icon blue">
+                    <div class="sh-stat-icon green">
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                     </div>
                 </div>
                 <p class="sh-stat-value">{{ $totalColocs }}</p>
-                <p class="sh-stat-hint">colocations joined</p>
-            </div>
-
-            <div class="sh-stat fade-up d2">
-                <div class="sh-stat-top">
-                    <span class="sh-stat-label">Current Colocation</span>
-                    <div class="sh-stat-icon green">
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                </div>
-                @if($activeColoc)
-                    <p style="font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:900;color:var(--ink);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $activeColoc->name }}</p>
-                    <span class="badge badge-green">● Active</span>
-                @else
-                    <p style="font-size:1rem;font-weight:600;color:var(--muted);margin-bottom:6px">None</p>
-                    <span class="badge badge-gray">No active colocation</span>
-                @endif
+                <p class="sh-stat-hint">System-wide active</p>
             </div>
 
             <div class="sh-stat fade-up d3">
                 <div class="sh-stat-top">
-                    <span class="sh-stat-label">Times as Owner</span>
+                    <span class="sh-stat-label">Ownerships</span>
                     <div class="sh-stat-icon amber">
                         <svg fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
                     </div>
                 </div>
                 <p class="sh-stat-value">{{ $ownedCount }}</p>
-                <p class="sh-stat-hint">colocations as owner</p>
+                <p class="sh-stat-hint">Your owned properties</p>
             </div>
 
             <div class="sh-stat fade-up d4">
@@ -424,74 +434,76 @@
             </div>
         </div>
 
-        {{-- History Table --}}
-        <div class="sh-card fade-up d5">
-            <div class="sh-card-header">
-                <div>
-                    <p class="sh-card-title">Colocation History</p>
-                    <p class="sh-card-sub">All colocations you have been part of</p>
+        {{-- Admin User Management (Visible ONLY for Admins) --}}
+        @if(auth()->user()->role->title === 'admin')
+            <div id="admin-section" class="sh-card fade-up d4" style="margin-bottom: 32px; border-left: 4px solid var(--green);">
+                <div class="sh-card-header">
+                    <div>
+                        <p class="sh-card-title">User Management</p>
+                        <p class="sh-card-sub">Administrator control panel for all platform users</p>
+                    </div>
+                    <span class="badge badge-amber">Admin Privileges</span>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="sh-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($users as $u)
+                                <tr>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:12px">
+                                            <div class="sh-avatar {{ $u->is_banned ? 'banned' : '' }}">
+                                                {{ strtoupper(substr($u->name, 0, 1)) }}
+                                            </div>
+                                            <div>
+                                                <p style="font-weight:700;color:var(--ink);font-size:0.875rem">{{ $u->name }}</p>
+                                                <p style="font-size:0.72rem;color:var(--muted)">{{ $u->email }}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $u->role->title === 'admin' ? 'badge-amber' : 'badge-gray' }}">
+                                            {{ ucfirst($u->role->title) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if($u->is_banned)
+                                            <span class="badge badge-red">Banned</span>
+                                        @else
+                                            <span class="badge badge-green">Active</span>
+                                        @endif
+                                    </td>
+                                    <td style="font-size:0.78rem;color:var(--muted)">{{ $u->created_at->format('d M Y') }}</td>
+                                    <td>
+                                        @if($u->id !== auth()->id())
+                                            <form method="POST" action="{{ route('admin.toggle-ban', $u->id) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="btn-ghost {{ $u->is_Ban ? 'btn-unban' : 'btn-ban' }}" style="padding:6px 12px;font-size:0.75rem">
+                                                    {{ $u->is_Ban ? 'Unban' : 'Ban' }}
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span style="font-size:0.75rem; color:var(--muted); font-style:italic">You</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <table class="sh-table">
-                <thead>
-                    <tr>
-                        <th>Colocation</th><th>Role</th><th>Status</th><th>Joined</th><th>Left</th><th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($allMemberships as $membership)
-                        <tr>
-                            <td>
-                                <div style="display:flex;align-items:center;gap:12px">
-                                    <div class="coloc-avatar">{{ strtoupper(substr($membership->colocation->name, 0, 1)) }}</div>
-                                    <div>
-                                        <p style="font-weight:700;color:var(--ink);font-size:0.875rem">{{ $membership->colocation->name }}</p>
-                                        <p style="font-size:0.72rem;color:var(--muted)">{{ $membership->colocation->memberships_count }} member(s)</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge {{ $membership->role === 'owner' ? 'badge-amber' : 'badge-gray' }}">
-                                    {{ $membership->role === 'owner' ? '⭐ Owner' : 'Member' }}
-                                </span>
-                            </td>
-                            <td>
-                                @if($membership->colocation->status === 'active' && is_null($membership->left_at))
-                                    <span class="badge badge-green">● Active</span>
-                                @elseif($membership->colocation->status === 'cancelled')
-                                    <span class="badge badge-red">Cancelled</span>
-                                @else
-                                    <span class="badge badge-gray">Left</span>
-                                @endif
-                            </td>
-                            <td style="font-size:0.78rem;color:var(--muted)">{{ $membership->created_at->format('d M Y') }}</td>
-                            <td style="font-size:0.78rem;color:var(--muted)">{{ $membership->left_at ? \Carbon\Carbon::parse($membership->left_at)->format('d M Y') : '—' }}</td>
-                            <td>
-                                @if($membership->colocation->status === 'active' && is_null($membership->left_at))
-                                    <a href="{{ route('colocations.show', $membership->colocation) }}" class="btn-ghost" style="padding:6px 12px;font-size:0.75rem">
-                                        View <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px"><path d="M9 5l7 7-7 7"/></svg>
-                                    </a>
-                                @else
-                                    <span style="color:var(--line);font-size:0.8rem">—</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6">
-                                <div class="sh-empty">
-                                    <div class="sh-empty-icon">
-                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                                    </div>
-                                    <p class="sh-empty-title">No colocations yet</p>
-                                    <a href="{{ route('colocations.create') }}" class="btn-primary" style="margin:0 auto">New Colocation</a>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+        @endif
+
+       
     </main>
 </div>
 </x-app-layout>
