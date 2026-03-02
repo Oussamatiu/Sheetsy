@@ -41,8 +41,15 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        
         event(new Registered($user));
-
+        if (session('invitation_token')) {
+            $token = session('invitation_token');
+            $user->invitations()->where('token', $token)->update(['status' => 'accepted']);
+            $colocationId = $user->invitations()->where('token', $token)->value('colocation_id');
+            $user->colocations()->attach($colocationId, ['joined_at' => now()]);
+            session()->forget('invitation_token');
+        }
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));

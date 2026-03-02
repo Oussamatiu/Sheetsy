@@ -7,6 +7,7 @@ use App\Models\Colocation;
 use App\Models\Memberships;
 use Illuminate\Container\Attributes\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth as FacadesAuth;
 
 class ColocationController extends Controller
 {
@@ -17,7 +18,7 @@ class ColocationController extends Controller
     {
        $userId = auth()->id();
 
-       $colocations = auth()->user()->colocations;
+       $colocations = auth()->user()->colocations->where('status', 'active');
 
        return view('colocations.index', compact('colocations'));
 
@@ -82,6 +83,7 @@ class ColocationController extends Controller
     $myPaid = $colocation->expenses()->where('paid_by', auth()->id())->sum('amount');
     $perPerson = $activeMembers->count() > 0 ? $totalExpenses / $activeMembers->count() : 0;
     $myBalance = $myPaid - $perPerson;
+    auth()->user()->memberships()->where('colocation_id', $colocation->id)->update(['balance' => $myBalance]);
 
     $pendingInvitations = $colocation->invitations()
         ->where('status', 'pending')
@@ -96,6 +98,11 @@ class ColocationController extends Controller
         ->filter();
         
     $categories = $colocation->categories()->orderBy('name')->get();
+    $payments = $colocation->payments()
+    ->with(['payer', 'receiver', 'expense'])
+    ->orderBy('status') 
+    ->orderByDesc('created_at')
+    ->get();
 
     return view('colocations.show', compact(
         'colocation',
@@ -107,7 +114,8 @@ class ColocationController extends Controller
         'myBalance',
         'pendingInvitations',
         'sidebarColocations',
-        'categories'
+        'categories',
+        'payments'
     ));
     }
 
@@ -136,10 +144,12 @@ class ColocationController extends Controller
             return redirect()->route('dashboard')->with('error', 'Only the owner can delete this colocation.');
         }
 
-        $colocation->delete();
+        $colocation->status = 'cancelled';
+        $colocation->update();
 
         return redirect()->route('dashboard')->with('success', 'Colocation deleted successfully.');
     }
+
     public function leave(Colocation $colocation)
     {
         $user = auth()->user();

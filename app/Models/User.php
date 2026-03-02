@@ -51,6 +51,10 @@ class User extends Authenticatable
     public function ownedColocations(){
         return $this->hasMany(Colocation::class, 'owner_id');
     }
+    public function invitations()
+    {
+        return $this->hasMany(Invitation::class, 'email', 'email');
+    }
 
 
 

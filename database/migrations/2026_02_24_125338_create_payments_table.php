@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignId('payer_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('receiver_id')->constrained('users')->cascadeOnDelete();
             $table->decimal('amount', 10, 2);
+            $table->enum('status', ['pending', 'paid'])->default('pending');
+            $table->foreignId('expense_id')->constrained()->cascadeOnDelete();
             $table->timestamp('paid_at');
             $table->timestamps();
         });

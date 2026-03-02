@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,5 +25,8 @@ Route::resource('categories', \App\Http\Controllers\CategoryController::class)->
 Route::resource('invitations', \App\Http\Controllers\InvitationController::class)->middleware('auth')->only(['store', 'destroy']);
 Route::post('/invitations/send/{colocationId}', [\App\Http\Controllers\InvitationController::class, 'sendInvitation'])->name('invitations.send')->middleware('auth');
 Route::get('/invitations/accept/{token}', [\App\Http\Controllers\InvitationController::class, 'accept'])->name('invitations.accept');
-
+Route::patch('/colocations/{colocation}/payments/{payment}/mark-paid', 
+    [PaymentController::class, 'markPaid'])
+    ->name('payments.mark-paid')
+    ->middleware('auth');
 require __DIR__.'/auth.php';

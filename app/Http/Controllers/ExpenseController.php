@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ExpenseRequest;
 use App\Models\Category;
+use App\Models\Colocation;
 use App\Models\Expense;
+use App\Models\Payment;
 use Illuminate\Container\Attributes\Auth;
 use Illuminate\Http\Request;
 
@@ -83,17 +85,44 @@ class ExpenseController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(ExpenseRequest $request)
-    {
-        $validated = $request->validated();
-        $validated['created_by'] = auth()->id();
-        $validated['colocation_id'] = auth()->user()->colocations()
-            ->wherePivotNull('left_at')
-            ->value('colocations.id');
+{
+    $validated = $request->validated();
+    $validated['created_by'] = auth()->id();
+    $colocation = auth()->user()->colocations()
+        ->wherePivotNull('left_at')
+        ->where('colocations.status', 'active')
+        ->first();
+    $validated['colocation_id'] = $colocation->id;
 
-        Expense::create($validated);
+    $expense = Expense::create($validated);
 
-        return redirect()->route('colocations.show', $validated['colocation_id'])->with('success', 'Expense created successfully.'); 
+    
+    $activeMembers = $colocation->memberships()
+        ->whereNull('left_at')
+        ->with('user')
+        ->get();
+
+    $share = $expense->amount / $activeMembers->count(); 
+
+    foreach ($activeMembers as $membership) {
+       
+        if ($membership->user_id == $expense->paid_by) {
+            continue;
+        }
+
+        Payment::create([
+            'colocation_id' => $colocation->id,
+            'payer_id'      => $membership->user_id,  
+            'receiver_id'   => $expense->paid_by,      
+            'amount'        => $share,
+            'status'        => 'pending',
+            'expense_id'    => $expense->id,
+        ]);
     }
+
+    return redirect()->route('colocations.show', $colocation)
+        ->with('success', 'Expense created successfully.');
+}
 
     /**
      * Display the specified resource.
