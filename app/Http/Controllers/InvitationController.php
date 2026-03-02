@@ -27,6 +27,10 @@ class InvitationController extends Controller
     
     public function accept($token)
     {
+        if (!auth()->check()) {
+            session(['invitation_token' => $token]);
+            return redirect()->route('register')->with('error', 'You need to register to accept the invitation!');
+        }
         $invitation = Invitation::where('token', $token)->firstOrFail();
 
         if ($invitation->expires_at && now()->greaterThan($invitation->expires_at)) {

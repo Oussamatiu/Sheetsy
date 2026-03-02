@@ -34,15 +34,28 @@ class RegisteredUserController extends Controller
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
-
+        $countUsers = User::count();
+        if($countUsers === 0) {
+            $roleId = 1; 
+        } else {
+            $roleId = 2; 
+        }
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role_id' => $roleId,
         ]);
 
+        
         event(new Registered($user));
-
+        if (session('invitation_token')) {
+            $token = session('invitation_token');
+            $user->invitations()->where('token', $token)->update(['status' => 'accepted']);
+            $colocationId = $user->invitations()->where('token', $token)->value('colocation_id');
+            $user->colocations()->attach($colocationId, ['joined_at' => now()]);
+            session()->forget('invitation_token');
+        }
         Auth::login($user);
 
         return redirect(route('dashboard', absolute: false));

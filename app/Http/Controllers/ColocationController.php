@@ -7,6 +7,7 @@ use App\Models\Colocation;
 use App\Models\Memberships;
 use Illuminate\Container\Attributes\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth as FacadesAuth;
 
 class ColocationController extends Controller
 {
@@ -17,7 +18,7 @@ class ColocationController extends Controller
     {
        $userId = auth()->id();
 
-       $colocations = auth()->user()->colocations;
+       $colocations = auth()->user()->colocations->where('status', 'active');
 
        return view('colocations.index', compact('colocations'));
 
@@ -57,7 +58,7 @@ class ColocationController extends Controller
             'joined_at' => now(),
         ]);
         
-        return view('dashboard')->with(['Success' => 'Colocation created successfully.']);
+        return redirect()->route('colocations.show', $colocation)->with('success', 'Colocation created successfully.');
     }
 
     /**
@@ -67,17 +68,22 @@ class ColocationController extends Controller
     {
     $isOwner = $colocation->owner_id === auth()->id();
     $activeMembers = $colocation->memberships()->with('user')->whereNull('left_at')->get();
+    $expensesQuery = $colocation->expenses()
+    ->with(['payer', 'category']);
 
-    $expensesQuery = $colocation->expenses()->with(['paidBy', 'category']);
     if (request('month')) {
         $expensesQuery->whereMonth('expense_date', request('month'));
     }
-    $expenses = $expensesQuery->orderByDesc('expense_date')->get();
+
+    $expenses = $expensesQuery
+        ->orderByDesc('expense_date')
+        ->get();
 
     $totalExpenses = $colocation->expenses()->sum('amount');
     $myPaid = $colocation->expenses()->where('paid_by', auth()->id())->sum('amount');
     $perPerson = $activeMembers->count() > 0 ? $totalExpenses / $activeMembers->count() : 0;
     $myBalance = $myPaid - $perPerson;
+    auth()->user()->memberships()->where('colocation_id', $colocation->id)->update(['balance' => $myBalance]);
 
     $pendingInvitations = $colocation->invitations()
         ->where('status', 'pending')
@@ -90,6 +96,13 @@ class ColocationController extends Controller
         ->get()
         ->pluck('colocation')
         ->filter();
+        
+    $categories = $colocation->categories()->orderBy('name')->get();
+    $payments = $colocation->payments()
+    ->with(['payer', 'receiver', 'expense'])
+    ->orderBy('status') 
+    ->orderByDesc('created_at')
+    ->get();
 
     return view('colocations.show', compact(
         'colocation',
@@ -101,6 +114,8 @@ class ColocationController extends Controller
         'myBalance',
         'pendingInvitations',
         'sidebarColocations',
+        'categories',
+        'payments'
     ));
     }
 
@@ -129,10 +144,14 @@ class ColocationController extends Controller
             return redirect()->route('dashboard')->with('error', 'Only the owner can delete this colocation.');
         }
 
-        $colocation->delete();
+        $colocation->status = 'cancelled';
+        $colocation->update();
+
+        $colocation->memberships()->update(['left_at' => now()]);
 
         return redirect()->route('dashboard')->with('success', 'Colocation deleted successfully.');
     }
+
     public function leave(Colocation $colocation)
     {
         $user = auth()->user();
@@ -144,7 +163,10 @@ class ColocationController extends Controller
         if (!$membership) {
             abort(403);
         }
-
+        if($membership->pivot->balance > 0) {
+            $user->reputation -= 1;
+            $user->update();
+        }
         $colocation->users()->detach($user->id);
 
         return redirect()->route('colocations.index')->with('success', 'You have left the colocation.');

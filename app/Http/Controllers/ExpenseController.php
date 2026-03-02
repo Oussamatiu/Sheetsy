@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ExpenseRequest;
 use App\Models\Category;
+use App\Models\Colocation;
 use App\Models\Expense;
+use App\Models\Payment;
 use Illuminate\Container\Attributes\Auth;
 use Illuminate\Http\Request;
 
@@ -59,7 +61,7 @@ class ExpenseController extends Controller
 
   
     $recentExpenses = $colocation->expenses()
-        ->with('paidBy')
+        ->with('payer')
         ->latest()
         ->take(5)
         ->get();
@@ -83,13 +85,44 @@ class ExpenseController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(ExpenseRequest $request)
-    {
-        $validated = $request->validated();
+{
+    $validated = $request->validated();
+    $validated['created_by'] = auth()->id();
+    $colocation = auth()->user()->colocations()
+        ->wherePivotNull('left_at')
+        ->where('colocations.status', 'active')
+        ->first();
+    $validated['colocation_id'] = $colocation->id;
 
-        Expense::create($validated);
+    $expense = Expense::create($validated);
 
-        return redirect()->route('expenses.index')->with('success', 'Expense created successfully.'); 
+    
+    $activeMembers = $colocation->memberships()
+        ->whereNull('left_at')
+        ->with('user')
+        ->get();
+
+    $share = $expense->amount / $activeMembers->count(); 
+
+    foreach ($activeMembers as $membership) {
+       
+        if ($membership->user_id == $expense->paid_by) {
+            continue;
+        }
+
+        Payment::create([
+            'colocation_id' => $colocation->id,
+            'payer_id'      => $membership->user_id,  
+            'receiver_id'   => $expense->paid_by,      
+            'amount'        => $share,
+            'status'        => 'pending',
+            'expense_id'    => $expense->id,
+        ]);
     }
+
+    return redirect()->route('colocations.show', $colocation)
+        ->with('success', 'Expense created successfully.');
+}
 
     /**
      * Display the specified resource.
@@ -139,10 +172,12 @@ class ExpenseController extends Controller
     public function destroy(Expense $expense)
     {
         $userId = auth()->id();
+
         if ($expense->paid_by !== $userId && $expense->created_by !== $userId) {
-            return redirect()->route('expenses.index')->with('error', 'You can only delete expenses you have paid.');
+            return redirect()->route('colocations.show', $expense->colocation_id)->with('error', 'You can only delete expenses you have paid.');
         }
+
         $expense->delete();
-        return redirect()->route('expenses.index')->with('success', 'Expense deleted successfully.');
+        return redirect()->route('colocations.show', $expense->colocation_id)->with('success', 'Expense deleted successfully.');
     }
 }
